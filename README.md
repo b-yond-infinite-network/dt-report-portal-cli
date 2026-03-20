@@ -157,6 +157,33 @@ uv run pytest -v
 uv run rp-fetch --help
 ```
 
+### Local ReportPortal Dev Environment
+
+A full ReportPortal instance with pre-loaded test data is available for local testing:
+
+```bash
+# Start ReportPortal (first run takes a few minutes to pull images)
+cd dev/
+docker compose up -d
+
+# Wait ~90s for services to be healthy, then seed test data
+uv run python seed.py --wait 120
+
+# The seed script prints the API key and launch UUIDs — use them:
+cd ..
+uv run rp-fetch config init
+# base_url: http://localhost:8080
+# project:  tessa_vonr
+# api_key:  <from seed output>
+
+uv run rp-fetch launch list
+uv run rp-fetch download <LAUNCH_UUID>
+```
+
+UI is at http://localhost:8080/ui (login: `superadmin` / `erebus`).
+
+See [`dev/README.md`](dev/README.md) for details on the seeded data.
+
 ### Building Self-Contained Executables
 
 You can build a standalone executable using [PyInstaller](https://pyinstaller.org/) that bundles Python and all dependencies into a single binary — no Python installation needed on the target machine.

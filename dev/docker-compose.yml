@@ -1,0 +1,234 @@
+# ReportPortal v5.15 — local dev environment for rp-fetch CLI testing
+#
+# Usage:
+#   cd dev/
+#   docker compose up -d
+#   # Wait ~60s for all services to be healthy, then seed test data:
+#   uv run python seed.py
+#
+# UI:   http://localhost:8080/ui
+# API:  http://localhost:8080/api/v1
+# Login: superadmin / erebus
+#
+# Tear down:
+#   docker compose down -v
+
+services:
+  # ──────────────────── Infrastructure ────────────────────
+
+  gateway:
+    image: traefik:v2.11.32
+    ports:
+      - "8080:8080"    # ReportPortal UI + API
+      - "8081:8081"    # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command:
+      - --providers.docker=true
+      - --providers.docker.constraints=Label(`traefik.expose`, `true`)
+      - --entrypoints.web.address=:8080
+      - --entrypoints.traefik.address=:8081
+      - --api.dashboard=true
+      - --api.insecure=true
+    networks:
+      - reportportal
+    restart: unless-stopped
+
+  postgres:
+    image: bitnami/postgresql:17
+    environment:
+      POSTGRESQL_DATABASE: reportportal
+      POSTGRESQL_USERNAME: rpuser
+      POSTGRESQL_PASSWORD: rppass
+    volumes:
+      - postgres:/bitnami/postgresql
+    networks:
+      - reportportal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rpuser -d reportportal"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  rabbitmq:
+    image: bitnami/rabbitmq:4.1
+    environment:
+      RABBITMQ_USERNAME: rabbitmq
+      RABBITMQ_PASSWORD: rabbitmq
+    networks:
+      - reportportal
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  opensearch:
+    image: opensearchproject/opensearch:2.19.1
+    environment:
+      discovery.type: single-node
+      plugins.security.disabled: "true"
+      OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
+    volumes:
+      - opensearch:/usr/share/opensearch/data
+    networks:
+      - reportportal
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9200/_cluster/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ──────────────────── ReportPortal Core ────────────────────
+
+  migrations:
+    image: reportportal/migrations:5.15.1
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_SERVER: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: reportportal
+      POSTGRES_USER: rpuser
+      POSTGRES_PASSWORD: rppass
+    networks:
+      - reportportal
+
+  uat:
+    image: reportportal/service-authorization:5.15.0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      POSTGRES_SERVER: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: reportportal
+      POSTGRES_USER: rpuser
+      POSTGRES_PASSWORD: rppass
+      AMQP_URL: amqp://rabbitmq:rabbitmq@rabbitmq:5672
+      RP_SESSION_LIVE: "86400"
+      RP_INITIAL_ADMIN_PASSWORD: erebus
+    labels:
+      - "traefik.expose=true"
+      - "traefik.http.routers.uat.rule=PathPrefix(`/uat`)"
+      - "traefik.http.routers.uat.entrypoints=web"
+      - "traefik.http.services.uat.loadbalancer.server.port=9999"
+    networks:
+      - reportportal
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9999/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
+
+  api:
+    image: reportportal/service-api:5.15.1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    environment:
+      POSTGRES_SERVER: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: reportportal
+      POSTGRES_USER: rpuser
+      POSTGRES_PASSWORD: rppass
+      AMQP_URL: amqp://rabbitmq:rabbitmq@rabbitmq:5672
+      DATASTORE_TYPE: filesystem
+      RP_REQUESTLOGGING: "false"
+      LOGGING_LEVEL_ORG_HIBERNATE_SQL: info
+      JAVA_OPTS: >-
+        -Xms1g -Xmx2g
+      RP_ENVIRONMENT_VARIABLE_PATTERN: ""
+    volumes:
+      - storage:/data/storage
+    labels:
+      - "traefik.expose=true"
+      - "traefik.http.routers.api.rule=PathPrefix(`/api`)"
+      - "traefik.http.routers.api.entrypoints=web"
+      - "traefik.http.services.api.loadbalancer.server.port=8585"
+    networks:
+      - reportportal
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8585/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+    restart: unless-stopped
+
+  jobs:
+    image: reportportal/service-jobs:5.15.0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    environment:
+      POSTGRES_SERVER: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: reportportal
+      POSTGRES_USER: rpuser
+      POSTGRES_PASSWORD: rppass
+      AMQP_URL: amqp://rabbitmq:rabbitmq@rabbitmq:5672
+      DATASTORE_TYPE: filesystem
+    volumes:
+      - storage:/data/storage
+    networks:
+      - reportportal
+    restart: unless-stopped
+
+  index:
+    image: reportportal/service-index:5.15.0
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      LB_URL: http://gateway:8080
+    labels:
+      - "traefik.expose=true"
+      - "traefik.http.routers.index.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.index.entrypoints=web"
+      - "traefik.http.routers.index.priority=1"
+      - "traefik.http.services.index.loadbalancer.server.port=8080"
+    networks:
+      - reportportal
+    restart: unless-stopped
+
+  ui:
+    image: reportportal/service-ui:5.15.2
+    environment:
+      RP_SERVER_PORT: "8080"
+    labels:
+      - "traefik.expose=true"
+      - "traefik.http.routers.ui.rule=PathPrefix(`/ui`)"
+      - "traefik.http.routers.ui.entrypoints=web"
+      - "traefik.http.services.ui.loadbalancer.server.port=8080"
+    networks:
+      - reportportal
+    restart: unless-stopped
+
+volumes:
+  postgres:
+  opensearch:
+  storage:
+
+networks:
+  reportportal:
