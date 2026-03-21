@@ -2,6 +2,7 @@
 
 import os
 import stat
+import sys
 from pathlib import Path
 
 import pytest
@@ -34,10 +35,11 @@ def test_write_config_creates_file(config_dir):
         project="my_project",
     )
     assert path.exists()
-    # Check permissions (600)
-    mode = path.stat().st_mode
-    assert mode & stat.S_IRWXG == 0  # no group access
-    assert mode & stat.S_IRWXO == 0  # no other access
+    # Check permissions (600) — Unix only; Windows NTFS ignores POSIX mode bits
+    if sys.platform != "win32":
+        mode = path.stat().st_mode
+        assert mode & stat.S_IRWXG == 0  # no group access
+        assert mode & stat.S_IRWXO == 0  # no other access
 
 
 def test_load_settings_from_file(config_dir):
