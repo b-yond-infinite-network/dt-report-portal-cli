@@ -487,6 +487,269 @@ FAILED_TESTS = {
 }
 
 
+# ── BDD / Cucumber-style test data (mirrors customer setup) ───
+# Hierarchy: Folder → Folder → Feature → Scenario
+# This matches the structure seen in the customer's RP instance:
+#   Launch > Folder: 0_VoLTE_E2E > Folder: 01_Basic_Calls > Feature: VoLTE_VoLTE > Scenario: VoLTE_VoLTE
+
+BDD_STRUCTURE = {
+    "launch_name": "clab_come-playground",
+    "description": "VoLTE E2E regression — Cucumber/BDD structure with Folders, Features, Scenarios",
+    "folders": [
+        {
+            "name": "0_VoLTE_E2E",
+            "description": "VoLTE end-to-end test scenarios",
+            "subfolders": [
+                {
+                    "name": "01_Basic_Calls",
+                    "description": "Basic VoLTE call scenarios",
+                    "features": [
+                        {
+                            "name": "VoLTE_VoLTE",
+                            "description": "VoLTE to VoLTE call scenarios",
+                            "scenarios": [
+                                {
+                                    "name": "VoLTE_VoLTE",
+                                    "description": "Basic VoLTE to VoLTE voice call",
+                                    "status": "FAILED",
+                                    "issue": {"issueType": "ab001", "comment": "Alerting State Not Reached"},
+                                    "logs": [
+                                        ("info", "-- And the following parties: --\n"
+                                                 "| name    | type  | RAT | VoLTE | 4G | 2G | NLAN |\n"
+                                                 "| A-party | Probe | 4G  | on    | on | on | on   |\n"
+                                                 "| B-party | Probe | 4G  | on    | on | on | on   |"),
+                                        ("info", "JobID: 10f9aeaea98a726f\n"
+                                                 "https://grafana01.its-telekom.eu/d/_p3ZawU2k/appium-environment-logs"
+                                                 "?orgId=1&var-env_id=10f9aeaea98a726f\n"
+                                                 "GridURL: selenium.its:4446"),
+                                        ("info", "A-party is initialized as Probe9"),
+                                        ("info", "B-party is initialized as Probe12"),
+                                        ("debug", "Dialing B-party number: +491511234567"),
+                                        ("info", "A-party call state: DIALING"),
+                                        ("info", "B-party incoming call detected"),
+                                        ("info", "B-party answering call"),
+                                        ("error", "Alerting state NOT reached within 30s timeout"),
+                                        ("error", "Expected: ALERTING, Got: DIALING after 30000ms"),
+                                    ],
+                                    "attachments": [
+                                        ("screenshot_call_fail.png", "image/png", "png"),
+                                        ("appium_a_party.log", "text/plain", "appium"),
+                                    ],
+                                },
+                                {
+                                    "name": "VoLTE_VoLTE_hold_resume",
+                                    "description": "VoLTE call with hold and resume",
+                                    "status": "PASSED",
+                                    "logs": [
+                                        ("info", "-- And the following parties: --\n"
+                                                 "| name    | type  | RAT | VoLTE | 4G |\n"
+                                                 "| A-party | Probe | 4G  | on    | on |\n"
+                                                 "| B-party | Probe | 4G  | on    | on |"),
+                                        ("info", "A-party is initialized as Probe3"),
+                                        ("info", "B-party is initialized as Probe7"),
+                                        ("info", "Call established between A and B"),
+                                        ("info", "A-party puts call on hold"),
+                                        ("info", "Hold confirmed — media stream paused"),
+                                        ("info", "A-party resumes call"),
+                                        ("info", "Call resumed — media stream active"),
+                                        ("info", "Call terminated normally"),
+                                    ],
+                                    "attachments": [
+                                        ("call_hold_resume.pcap", "application/vnd.tcpdump.pcap", "pcap"),
+                                    ],
+                                },
+                            ],
+                        },
+                        {
+                            "name": "VoLTE_PSTN",
+                            "description": "VoLTE to PSTN breakout scenarios",
+                            "scenarios": [
+                                {
+                                    "name": "VoLTE_to_PSTN_basic",
+                                    "description": "VoLTE origination to PSTN termination",
+                                    "status": "PASSED",
+                                    "logs": [
+                                        ("info", "A-party (VoLTE) calling B-party (PSTN)"),
+                                        ("info", "MGCF interworking — SIP to ISUP conversion"),
+                                        ("info", "Call established via PSTN gateway"),
+                                        ("info", "Audio quality: MOS 4.1"),
+                                        ("info", "Call terminated by A-party"),
+                                    ],
+                                    "attachments": [],
+                                },
+                            ],
+                        },
+                    ],
+                },
+                {
+                    "name": "02_Emergency_Calls",
+                    "description": "Emergency call scenarios",
+                    "features": [
+                        {
+                            "name": "Emergency_112",
+                            "description": "112 emergency call handling",
+                            "scenarios": [
+                                {
+                                    "name": "Emergency_112_basic",
+                                    "description": "Basic 112 emergency call",
+                                    "status": "PASSED",
+                                    "logs": [
+                                        ("info", "UE dialing 112"),
+                                        ("info", "Emergency bearer established — QCI 1"),
+                                        ("info", "Location info attached: Cell ID 0x1A2B"),
+                                        ("info", "Call routed to PSAP"),
+                                        ("info", "Call established with emergency center"),
+                                        ("info", "Call duration: 45s"),
+                                    ],
+                                    "attachments": [
+                                        ("emergency_setup.pcap", "application/vnd.tcpdump.pcap", "pcap"),
+                                        ("screenshot_emergency.png", "image/png", "png"),
+                                    ],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        },
+        {
+            "name": "1_SMS_over_IMS",
+            "description": "SMS over IMS (SMSoIP) test scenarios",
+            "subfolders": [
+                {
+                    "name": "01_MO_SMS",
+                    "description": "Mobile-originated SMS scenarios",
+                    "features": [
+                        {
+                            "name": "SMS_Send",
+                            "description": "Send SMS via IMS",
+                            "scenarios": [
+                                {
+                                    "name": "MO_SMS_basic",
+                                    "description": "Send a basic SMS over IMS",
+                                    "status": "PASSED",
+                                    "logs": [
+                                        ("info", "A-party sending SMS to B-party"),
+                                        ("debug", "SIP MESSAGE sip:+491517654321@ims.operator.com"),
+                                        ("info", "202 Accepted from SC"),
+                                        ("info", "Delivery report received: DELIVERED"),
+                                    ],
+                                    "attachments": [],
+                                },
+                                {
+                                    "name": "MO_SMS_long",
+                                    "description": "Send a concatenated (long) SMS over IMS",
+                                    "status": "FAILED",
+                                    "issue": {"issueType": "pb001", "comment": "Concatenation header missing"},
+                                    "logs": [
+                                        ("info", "Sending 300-char SMS (requires concatenation)"),
+                                        ("debug", "UDH: concat ref=42, total=2, seq=1"),
+                                        ("info", "Part 1/2 sent successfully"),
+                                        ("debug", "UDH: concat ref=42, total=2, seq=2"),
+                                        ("error", "Part 2/2 FAILED — 500 Server Error from SC"),
+                                        ("error", "Delivery report: FAILED — partial delivery"),
+                                    ],
+                                    "attachments": [
+                                        ("sms_failure.pcap", "application/vnd.tcpdump.pcap", "pcap"),
+                                    ],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        },
+    ],
+}
+
+
+def seed_bdd_launch(seeder: RPSeeder, base_time: datetime) -> str:
+    """Seed a BDD/Cucumber-style launch with Folders, Features, and Scenarios."""
+    t = base_time
+    cfg = BDD_STRUCTURE
+    launch_uuid = seeder.start_launch(
+        cfg["launch_name"], t, description=cfg["description"],
+    )
+    overall_status = "PASSED"
+
+    for folder in cfg["folders"]:
+        t += timedelta(seconds=2)
+        folder_uuid = seeder.start_item(
+            folder["name"], "suite", launch_uuid, t,
+            description=folder["description"],
+        )
+        folder_status = "PASSED"
+
+        for subfolder in folder.get("subfolders", []):
+            t += timedelta(seconds=1)
+            sub_uuid = seeder.start_item(
+                subfolder["name"], "suite", launch_uuid, t,
+                parent_uuid=folder_uuid,
+                description=subfolder["description"],
+            )
+            sub_status = "PASSED"
+
+            for feature in subfolder.get("features", []):
+                t += timedelta(seconds=1)
+                feat_uuid = seeder.start_item(
+                    feature["name"], "test", launch_uuid, t,
+                    parent_uuid=sub_uuid,
+                    description=feature["description"],
+                )
+                feat_status = "PASSED"
+
+                for scenario in feature.get("scenarios", []):
+                    t += timedelta(seconds=1)
+                    scen_uuid = seeder.start_item(
+                        scenario["name"], "step", launch_uuid, t,
+                        parent_uuid=feat_uuid,
+                        description=scenario["description"],
+                    )
+                    status = scenario["status"]
+                    issue = scenario.get("issue")
+
+                    for level, msg in scenario["logs"]:
+                        t += timedelta(milliseconds=500)
+                        seeder.create_log(scen_uuid, launch_uuid, t, msg, level)
+
+                    for filename, content_type, att_type in scenario.get("attachments", []):
+                        t += timedelta(milliseconds=100)
+                        data = generate_attachment_data(att_type)
+                        seeder.create_log_with_attachment(
+                            scen_uuid, launch_uuid, t,
+                            f"Attachment: {filename}", "info",
+                            filename, content_type, data,
+                        )
+                        print(f"        📎 {filename} ({len(data)} bytes)")
+
+                    t += timedelta(seconds=1)
+                    seeder.finish_item(scen_uuid, launch_uuid, t, status=status, issue=issue)
+                    if status == "FAILED":
+                        feat_status = "FAILED"
+                    symbol = "✅" if status == "PASSED" else "❌"
+                    print(f"        {symbol} {scenario['name']} — {status}")
+
+                t += timedelta(seconds=1)
+                seeder.finish_item(feat_uuid, launch_uuid, t, status=feat_status)
+                if feat_status == "FAILED":
+                    sub_status = "FAILED"
+
+            t += timedelta(seconds=1)
+            seeder.finish_item(sub_uuid, launch_uuid, t, status=sub_status)
+            if sub_status == "FAILED":
+                folder_status = "FAILED"
+
+        t += timedelta(seconds=1)
+        seeder.finish_item(folder_uuid, launch_uuid, t, status=folder_status)
+        if folder_status == "FAILED":
+            overall_status = "FAILED"
+
+    t += timedelta(seconds=5)
+    seeder.finish_launch(launch_uuid, t, status=overall_status)
+    print(f"    Launch finished: {overall_status}")
+    return launch_uuid
+
+
 def generate_attachment_data(att_type: str) -> bytes:
     if att_type == "pcap":
         return make_fake_pcap(packet_count=10)
@@ -613,29 +876,37 @@ def main() -> None:
     print("\n[3/5] API key generation")
     api_key = seeder.generate_api_key()
 
-    # Step 4: Seed passed launch
+    # Step 4: Seed passed launch (flat suite/test structure)
     base_time = datetime(2026, 3, 15, 9, 10, 0, tzinfo=timezone.utc)
-    print("\n[4/5] Seeding PASSED launch")
+    print("\n[4/6] Seeding PASSED launch (suite/test)")
     uuid1 = seed_launch(seeder, "VoNR_Regression_v2.0", base_time, apply_failures=False)
 
-    # Step 5: Seed failed launch
+    # Step 5: Seed failed launch (flat suite/test structure)
     base_time = datetime(2026, 3, 18, 14, 22, 0, tzinfo=timezone.utc)
-    print("\n[5/5] Seeding FAILED launch")
+    print("\n[5/6] Seeding FAILED launch (suite/test)")
     uuid2 = seed_launch(seeder, "VoNR_Regression_v2.1", base_time, apply_failures=True)
+
+    # Step 6: Seed BDD/Cucumber-style launch (Folder → Folder → Feature → Scenario)
+    base_time = datetime(2026, 3, 3, 6, 48, 0, tzinfo=timezone.utc)
+    print("\n[6/6] Seeding BDD/Cucumber launch (folder/feature/scenario)")
+    uuid3 = seed_bdd_launch(seeder, base_time)
 
     # Summary
     print("\n" + "=" * 50)
     print("✅ Seeding complete!\n")
     print("Launches created:")
-    print(f"  1. VoNR_Regression_v2.0 (PASSED) → {uuid1}")
-    print(f"  2. VoNR_Regression_v2.1 (FAILED) → {uuid2}")
+    print(f"  1. VoNR_Regression_v2.0 (PASSED) → {uuid1}   [suite/test]")
+    print(f"  2. VoNR_Regression_v2.1 (FAILED) → {uuid2}   [suite/test]")
+    print(f"  3. clab_come-playground (FAILED)  → {uuid3}   [folder/feature/scenario]")
     print(f"\nProject: {PROJECT_NAME}")
     print(f"API Key: {api_key}")
     print(f"\n📋 Quick start with rp-fetch:")
     print(f"   uv run rp-fetch config init")
     print(f"   # Use: base_url={args.base_url}  project={PROJECT_NAME}  api_key=<above>")
     print(f"   uv run rp-fetch launch list")
-    print(f"   uv run rp-fetch download {uuid2}")
+    print(f"   uv run rp-fetch download {uuid3}              # BDD launch")
+    print(f"   uv run rp-fetch download {uuid3} --flat       # BDD launch (flat mode)")
+    print(f"   uv run rp-fetch download {uuid2}              # suite/test launch")
     print(f"   uv run rp-fetch download {uuid2} --dry-run")
 
 

@@ -8,44 +8,49 @@ This produces a single self-contained executable at dist/rp-fetch.
 """
 
 import sys
-from PyInstaller.utils.hooks import collect_submodules
+from PyInstaller.utils.hooks import collect_submodules, collect_data_files
 
 block_cipher = None
 
 # Collect all rp_fetch submodules so nothing is missed
-hiddenimports = collect_submodules("rp_fetch") + [
-    "tomllib",
-    "tomli_w",
-    "httpx",
-    "httpx._transports",
-    "httpx._transports.default",
-    "httpcore",
-    "httpcore._async",
-    "httpcore._backends",
-    "httpcore._backends.anyio",
-    "h11",
-    "anyio",
-    "anyio._backends",
-    "anyio._backends._asyncio",
-    "pydantic",
-    "pydantic.deprecated",
-    "pydantic_core",
-    "typer",
-    "typer.main",
-    "click",
-    "rich",
-    "rich.progress",
-    "rich.table",
-    "rich.console",
-    "rich.prompt",
-    "shellingham",
-]
+hiddenimports = (
+    collect_submodules("rp_fetch")
+    + collect_submodules("typer")
+    + collect_submodules("click")
+    + collect_submodules("rich")
+    + collect_submodules("pydantic")
+    + collect_submodules("httpx")
+    + collect_submodules("httpcore")
+    + [
+        "tomllib",
+        "tomli_w",
+        "h11",
+        "h11._connection",
+        "h11._events",
+        "h11._state",
+        "anyio",
+        "anyio._backends",
+        "anyio._backends._asyncio",
+        "sniffio",
+        "pydantic_core",
+        "shellingham",
+        "certifi",
+        "idna",
+        "charset_normalizer",
+        "markdown_it",
+        "mdurl",
+        "pygments",
+    ]
+)
+
+# Collect data files needed by pydantic-core (validation schemas)
+datas = collect_data_files("pydantic") + collect_data_files("pydantic_core")
 
 a = Analysis(
     ["src/rp_fetch/cli.py"],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=datas,
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
