@@ -11,7 +11,7 @@ def _make_log(level: str = "INFO", message: str = "test") -> LogEntry:
         "id": 1,
         "message": message,
         "level": level,
-        "logTime": "2026-03-18T14:30:00Z",
+        "time": "2026-03-18T14:30:00Z",
     })
 
 

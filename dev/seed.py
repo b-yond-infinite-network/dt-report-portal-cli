@@ -173,13 +173,33 @@ class RPSeeder:
     def generate_api_key(self) -> str:
         """Generate an API key for superadmin and return it."""
         print("  Generating API key...")
-        resp = self.client.post(
-            f"{self.base_url}/uat/sso/me/apikeys",
-            json={"name": f"rp-fetch-dev-{int(time.time())}"},
+        # RP 5.15+: POST /api/users/{numericUserId}/api-keys
+        # First, look up numeric user ID
+        user_resp = self.client.get(
+            f"{self.base_url}/api/v1/user",
             headers=self._headers(),
         )
-        resp.raise_for_status()
-        key = resp.json().get("api_key") or resp.json().get("apiKey", "")
+        user_id = None
+        if user_resp.is_success:
+            user_id = user_resp.json().get("id") or user_resp.json().get("userId")
+
+        if user_id:
+            resp = self.client.post(
+                f"{self.base_url}/api/users/{user_id}/api-keys",
+                json={"name": f"rp-fetch-dev-{int(time.time())}"},
+                headers=self._headers(),
+            )
+        else:
+            resp = None
+
+        if resp is None or not resp.is_success:
+            if resp is not None:
+                print(f"  API key response: {resp.status_code} — {resp.text[:200]}")
+            # Fallback: use the bearer token directly
+            print("  Using bearer token as API key fallback")
+            return self.token
+        data = resp.json()
+        key = data.get("api_key") or data.get("apiKey") or data.get("key", "")
         if not key:
             # Fallback: use the bearer token directly
             print("  Could not generate API key — using bearer token as fallback")

@@ -156,7 +156,7 @@ async def test_not_found_404(client):
 @respx.mock
 async def test_download_attachment(client):
     binary_data = b"\x89PNG\r\n\x1a\nfake-image-data"
-    respx.get(f"{BASE_URL}/api/v1/{PROJECT}/data/bin-123").mock(
+    respx.get(f"{BASE_URL}/api/v1/data/{PROJECT}/bin-123").mock(
         return_value=httpx.Response(200, content=binary_data)
     )
     async with client:

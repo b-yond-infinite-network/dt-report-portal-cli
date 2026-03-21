@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class LaunchAttributes(BaseModel):
@@ -40,7 +40,7 @@ class TestItem(BaseModel):
     start_time: datetime | None = Field(None, alias="startTime")
     end_time: datetime | None = Field(None, alias="endTime")
     parent: int | None = None
-    path_names: dict[str, str] | None = Field(None, alias="pathNames")
+    path_names: dict[str, Any] | None = Field(None, alias="pathNames")
     launch_id: int | None = Field(None, alias="launchId")
     has_children: bool = Field(False, alias="hasChildren")
     has_stats: bool = Field(False, alias="hasStats")
@@ -56,13 +56,18 @@ class BinaryContent(BaseModel):
 
     model_config = {"populate_by_name": True}
 
+    @field_validator("id", mode="before")
+    @classmethod
+    def coerce_id_to_str(cls, v: Any) -> str:
+        return str(v)
+
 
 class LogEntry(BaseModel):
     id: int
     uuid: str | None = None
     message: str = ""
     level: str | None = None
-    log_time: datetime | None = Field(None, alias="logTime")
+    log_time: datetime | None = Field(None, alias="time")
     item_id: int | None = Field(None, alias="itemId")
     launch_id: int | None = Field(None, alias="launchId")
     binary_content: BinaryContent | None = Field(None, alias="binaryContent")

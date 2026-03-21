@@ -198,7 +198,7 @@ class RPClient:
         data = await self._get_json(
             "/log",
             **{
-                "filter.eq.itemId": item_id,
+                "filter.eq.item": item_id,
                 "page.size": page_size,
                 "page.page": page,
             },
@@ -225,7 +225,13 @@ class RPClient:
     # ------------------------------------------------------------------
 
     async def download_attachment(self, binary_id: str) -> bytes:
-        resp = await self._request("GET", f"/data/{binary_id}")
+        # The file storage endpoint is /api/v1/data/{project}/{id} — note:
+        # /data is at the API root, not nested under the project path.
+        url = f"{self.base_url}/api/v1/data/{self.project}/{binary_id}"
+        resp = await self.client.get(url, headers=self._headers)
+        if resp.status_code == 404:
+            raise RPNotFoundError(f"404 Not Found: /data/{self.project}/{binary_id}")
+        resp.raise_for_status()
         return resp.content
 
     # ------------------------------------------------------------------
