@@ -39,20 +39,43 @@ class RPNotFoundError(RPClientError):
     """404 — resource not found."""
 
 
+class RPProxyAuthError(RPClientError):
+    """407 / proxy rejection — proxy requires (re-)authentication."""
+
+
 class RPClient:
     """Thin async wrapper around the ReportPortal REST API (v5+)."""
 
-    def __init__(self, base_url: str, api_key: str, project: str) -> None:
+    def __init__(
+        self,
+        base_url: str,
+        api_key: str,
+        project: str,
+        proxy_url: str | None = None,
+        proxy_headers: dict[str, str] | None = None,
+    ) -> None:
         self.base_url = base_url.rstrip("/")
         self.project = project
         self._headers = auth_headers(api_key)
+        self._proxy_url = proxy_url or None
+        self._proxy_headers = proxy_headers or {}
         self._client: httpx.AsyncClient | None = None
 
     async def __aenter__(self) -> "RPClient":
+        # Build proxy config: use httpx.Proxy with headers so that
+        # Proxy-Authorization is sent to the proxy (not the target server).
+        proxy: httpx.Proxy | str | None = None
+        if self._proxy_url:
+            if self._proxy_headers:
+                proxy = httpx.Proxy(self._proxy_url, headers=self._proxy_headers)
+            else:
+                proxy = self._proxy_url
+
         self._client = httpx.AsyncClient(
             base_url=f"{self.base_url}/api/v1/{self.project}",
             headers=self._headers,
             timeout=httpx.Timeout(30.0, connect=10.0),
+            proxy=proxy,
         )
         return self
 
@@ -79,17 +102,29 @@ class RPClient:
         for attempt in range(max_retries + 1):
             try:
                 resp = await self.client.request(method, path, **kwargs)
+            except httpx.ProxyError as exc:
+                raise RPProxyAuthError(
+                    f"Proxy rejected the request: {exc}. "
+                    "Re-run the command to re-authenticate with the proxy."
+                ) from exc
             except httpx.TimeoutException as exc:
                 if attempt < MAX_RETRIES_TIMEOUT:
                     await asyncio.sleep(BACKOFF_BASE * (attempt + 1))
                     last_exc = exc
                     continue
-                raise RPClientError(f"Request timed out after {MAX_RETRIES_TIMEOUT} retries: {path}") from exc
+                raise RPClientError(
+                    f"Request timed out after {MAX_RETRIES_TIMEOUT} retries: {path}"
+                ) from exc
 
+            if resp.status_code == 407:
+                raise RPProxyAuthError(
+                    "407 Proxy Authentication Required — your proxy credentials "
+                    "may be missing or expired."
+                )
             if resp.status_code == 401:
                 raise RPAuthError(
                     "401 Unauthorized — check your API key. "
-                    "Generate one at: ReportPortal → Profile → API Keys"
+                    "Generate one at: ReportPortal -> Profile -> API Keys"
                 )
             if resp.status_code == 403:
                 raise RPAuthError(
@@ -100,7 +135,7 @@ class RPClient:
                 raise RPNotFoundError(f"404 Not Found: {path}")
             if resp.status_code == 429:
                 if attempt < max_retries:
-                    delay = BACKOFF_BASE * (2 ** attempt) + random.uniform(0, 1)
+                    delay = BACKOFF_BASE * (2**attempt) + random.uniform(0, 1)
                     await asyncio.sleep(delay)
                     continue
                 raise RPClientError("Rate limited (429) after max retries")
