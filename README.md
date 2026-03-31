@@ -2,8 +2,6 @@
 
 CLI tool to bulk-download ReportPortal launch content — logs, screenshots, PCAPs, and Appium attachments — without touching the UI.
 
-Built for the TESSA / DT Greece VoNR evaluation workflow.
-
 ## Installation
 
 ### From source (development)
