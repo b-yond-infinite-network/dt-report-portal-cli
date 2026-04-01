@@ -115,6 +115,12 @@ class RPClient:
                 raise RPClientError(
                     f"Request timed out after {MAX_RETRIES_TIMEOUT} retries: {path}"
                 ) from exc
+            except httpx.HTTPError as exc:
+                # Catch-all for network errors (ConnectError, DNS failures,
+                # TLS errors, etc.) that are not timeouts or proxy errors.
+                raise RPClientError(
+                    f"Network error while requesting {path}: {exc}"
+                ) from exc
 
             if resp.status_code == 407:
                 raise RPProxyAuthError(
@@ -140,7 +146,12 @@ class RPClient:
                     continue
                 raise RPClientError("Rate limited (429) after max retries")
 
-            resp.raise_for_status()
+            try:
+                resp.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                raise RPClientError(
+                    f"HTTP {resp.status_code} error for {path}: {exc}"
+                ) from exc
             return resp
 
         raise last_exc or RPClientError("Request failed")
@@ -260,13 +271,17 @@ class RPClient:
     # ------------------------------------------------------------------
 
     async def download_attachment(self, binary_id: str) -> bytes:
-        # The file storage endpoint is /api/v1/data/{project}/{id} — note:
-        # /data is at the API root, not nested under the project path.
+        # The file storage endpoint is at /api/v1/data/{project}/{id} which
+        # sits outside the per-project base path.  We pass the full absolute
+        # URL to ``_request`` — httpx detects it as absolute and uses it
+        # as-is, but still routes it through the configured proxy transport
+        # (and its proxy-auth headers), exactly like every other call.
         url = f"{self.base_url}/api/v1/data/{self.project}/{binary_id}"
-        resp = await self.client.get(url, headers=self._headers)
-        if resp.status_code == 404:
-            raise RPNotFoundError(f"404 Not Found: /data/{self.project}/{binary_id}")
-        resp.raise_for_status()
+        resp = await self._request(
+            "GET",
+            url,
+            timeout=httpx.Timeout(180.0, connect=10.0),
+        )
         return resp.content
 
     # ------------------------------------------------------------------

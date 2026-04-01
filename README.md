@@ -97,7 +97,7 @@ On first run, `uv run rp-fetch config init` creates `~/.rp-fetch/config.toml`:
 [default]
 base_url = "https://reportportal.example.com"
 api_key  = "your-api-key-here"
-project  = "tessa_project"
+project  = "sample_project"
 
 [output]
 directory = "./rp-downloads"
@@ -171,7 +171,7 @@ uv run python seed.py --wait 120
 cd ..
 uv run rp-fetch config init
 # base_url: http://localhost:8080
-# project:  tessa_vonr
+# project:  vonr_launch
 # api_key:  <from seed output>
 
 uv run rp-fetch launch list

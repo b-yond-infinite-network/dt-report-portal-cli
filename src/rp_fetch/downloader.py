@@ -16,7 +16,7 @@ from rich.progress import (
     TimeElapsedColumn,
 )
 
-from rp_fetch.client import RPClient, RPClientError
+from rp_fetch.client import RPClient, RPClientError, RPProxyAuthError
 from rp_fetch.fs import OutputWriter
 from rp_fetch.models import (
     Launch,
@@ -82,8 +82,16 @@ async def download_launch(
     include = include or ["all"]
     include_set = set(i.lower() for i in include)
     want_logs = "all" in include_set or "logs" in include_set
-    want_attachments = "all" in include_set or "attachments" in include_set or "screenshots" in include_set
-    want_screenshots_only = "screenshots" in include_set and "attachments" not in include_set and "all" not in include_set
+    want_attachments = (
+        "all" in include_set
+        or "attachments" in include_set
+        or "screenshots" in include_set
+    )
+    want_screenshots_only = (
+        "screenshots" in include_set
+        and "attachments" not in include_set
+        and "all" not in include_set
+    )
 
     # Step 1: Resolve launch
     console.print(f"[bold]Resolving launch [cyan]{launch_uuid}[/cyan]...[/bold]")
@@ -142,7 +150,9 @@ async def download_launch(
             if want_logs:
                 filtered_logs = [l for l in logs if _should_include_log(l, min_level)]
                 if filtered_logs:
-                    log_text = "\n".join(_format_log_entry(l) for l in filtered_logs) + "\n"
+                    log_text = (
+                        "\n".join(_format_log_entry(l) for l in filtered_logs) + "\n"
+                    )
                     writer.write_logs(item, items_by_id, log_text)
 
             # Write item metadata
@@ -160,8 +170,14 @@ async def download_launch(
                         manifest.total_attachments += 1
                         task = asyncio.create_task(
                             _download_attachment(
-                                rp_client, writer, item, items_by_id,
-                                bc.id, bc.content_type, semaphore, manifest,
+                                rp_client,
+                                writer,
+                                item,
+                                items_by_id,
+                                bc.id,
+                                bc.content_type,
+                                semaphore,
+                                manifest,
                             )
                         )
                         attachment_tasks.append(task)
@@ -170,7 +186,9 @@ async def download_launch(
 
     # Wait for all attachment downloads
     if attachment_tasks:
-        console.print(f"[bold]Downloading [cyan]{len(attachment_tasks)}[/cyan] attachments ({parallel} parallel)...[/bold]")
+        console.print(
+            f"[bold]Downloading [cyan]{len(attachment_tasks)}[/cyan] attachments ({parallel} parallel)...[/bold]"
+        )
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -212,6 +230,10 @@ async def _download_attachment(
             data = await rp_client.download_attachment(binary_id)
             writer.write_attachment(item, items_by_id, data, content_type, binary_id)
             manifest.total_bytes += len(data)
+        except RPProxyAuthError:
+            # Proxy auth errors must bubble up to the CLI for re-prompt,
+            # not be silently recorded as a per-attachment manifest error.
+            raise
         except RPClientError as exc:
             manifest.errors.append(
                 ManifestError(

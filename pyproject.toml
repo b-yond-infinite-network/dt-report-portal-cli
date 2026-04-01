@@ -1,6 +1,6 @@
 [project]
 name = "rp-fetch"
-version = "0.1.0"
+version = "0.2.0"
 description = "CLI tool to bulk-download ReportPortal launch content (logs, attachments, screenshots)"
 readme = "README.md"
 authors = [
