@@ -163,6 +163,28 @@ async def test_download_attachment(client):
     assert data == binary_data
 
 
+@pytest.mark.asyncio
+@respx.mock
+async def test_download_attachment_407_raises_proxy_auth_error(client):
+    respx.get(f"{BASE_URL}/api/v1/data/{PROJECT}/bin-456").mock(
+        return_value=httpx.Response(407)
+    )
+    async with client:
+        with pytest.raises(RPProxyAuthError, match="407"):
+            await client.download_attachment("bin-456")
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_download_attachment_404_raises_not_found(client):
+    respx.get(f"{BASE_URL}/api/v1/data/{PROJECT}/bin-missing").mock(
+        return_value=httpx.Response(404)
+    )
+    async with client:
+        with pytest.raises(RPNotFoundError):
+            await client.download_attachment("bin-missing")
+
+
 from rp_fetch.client import RPProxyAuthError
 
 
