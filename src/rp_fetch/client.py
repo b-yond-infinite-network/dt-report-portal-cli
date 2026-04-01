@@ -260,13 +260,17 @@ class RPClient:
     # ------------------------------------------------------------------
 
     async def download_attachment(self, binary_id: str) -> bytes:
-        # The file storage endpoint is /api/v1/data/{project}/{id} — note:
-        # /data is at the API root, not nested under the project path.
+        # The file storage endpoint is at /api/v1/data/{project}/{id} which
+        # sits outside the per-project base path.  We pass the full absolute
+        # URL to ``_request`` — httpx detects it as absolute and uses it
+        # as-is, but still routes it through the configured proxy transport
+        # (and its proxy-auth headers), exactly like every other call.
         url = f"{self.base_url}/api/v1/data/{self.project}/{binary_id}"
-        resp = await self.client.get(url, headers=self._headers)
-        if resp.status_code == 404:
-            raise RPNotFoundError(f"404 Not Found: /data/{self.project}/{binary_id}")
-        resp.raise_for_status()
+        resp = await self._request(
+            "GET",
+            url,
+            timeout=httpx.Timeout(180.0, connect=10.0),
+        )
         return resp.content
 
     # ------------------------------------------------------------------
