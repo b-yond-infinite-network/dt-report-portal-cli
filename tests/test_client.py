@@ -1,12 +1,11 @@
 """Tests for the ReportPortal HTTP client."""
 
-import pytest
 import httpx
+import pytest
 import respx
 
-from rp_fetch.client import RPClient, RPAuthError, RPNotFoundError, RPClientError
+from rp_fetch.client import RPAuthError, RPClient, RPClientError, RPNotFoundError
 from rp_fetch.models import Launch
-
 
 BASE_URL = "https://rp.example.com"
 PROJECT = "test_project"
@@ -162,3 +161,38 @@ async def test_download_attachment(client):
     async with client:
         data = await client.download_attachment("bin-123")
     assert data == binary_data
+
+
+from rp_fetch.client import RPProxyAuthError
+
+
+def test_client_stores_proxy_url():
+    client = RPClient(BASE_URL, API_KEY, PROJECT, proxy_url="http://proxy:8080")
+    assert client._proxy_url == "http://proxy:8080"
+
+
+def test_client_proxy_url_defaults_to_none():
+    client = RPClient(BASE_URL, API_KEY, PROJECT)
+    assert client._proxy_url is None
+
+
+def test_client_stores_proxy_headers():
+    headers = {"Proxy-Authorization": "Bearer tok123"}
+    client = RPClient(
+        BASE_URL, API_KEY, PROJECT, proxy_url="http://p:80", proxy_headers=headers
+    )
+    assert client._proxy_headers == headers
+    # Proxy-Authorization must NOT leak into regular request headers
+    assert "Proxy-Authorization" not in client._headers
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_proxy_407_raises_proxy_auth_error():
+    client = RPClient(BASE_URL, API_KEY, PROJECT)
+    respx.get(f"{BASE_URL}/api/v1/{PROJECT}/launch").mock(
+        return_value=httpx.Response(407)
+    )
+    async with client:
+        with pytest.raises(RPProxyAuthError, match="407"):
+            await client.list_launches()
