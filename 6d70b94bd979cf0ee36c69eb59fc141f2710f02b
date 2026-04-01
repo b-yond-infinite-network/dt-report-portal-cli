@@ -1,0 +1,22 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.23",
+  "base_commit_sha": "6d70b94bd979cf0ee36c69eb59fc141f2710f02b",
+  "prompts": {
+    "ac5c3d47685e9b79": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "38b1fab2-13f1-45af-95ca-6232a2a059d4",
+        "model": "unknown"
+      },
+      "human_author": "Albert Khoury Aouad <albert.aouad@b-yond.com>",
+      "messages": [],
+      "total_additions": 666,
+      "total_deletions": 0,
+      "accepted_lines": 666,
+      "overriden_lines": 0,
+      "messages_url": "https://usegitai.com/cas/39d08e83bd4e40bdedcabee8adc4db0e5722e714498957ce385807e1432507ee"
+    }
+  }
+}
