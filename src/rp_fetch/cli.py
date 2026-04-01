@@ -9,6 +9,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Annotated, Optional
 
+import click
 import typer
 from rich.console import Console
 
@@ -458,6 +459,9 @@ def config_test() -> None:
     except RPClientError as e:
         console.print(f"[red]Connection failed:[/red] {e}")
         raise typer.Exit(1)
+    except (KeyboardInterrupt, click.exceptions.Abort):
+        console.print("\n[dim]Cancelled.[/dim]")
+        raise typer.Exit(0)
     except Exception as e:
         console.print(
             f"[red]Unexpected error during connection test:[/red] {type(e).__name__}: {e}"
@@ -581,6 +585,9 @@ def launch_list(
     except RPClientError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
+    except (KeyboardInterrupt, click.exceptions.Abort):
+        console.print("\n[dim]Cancelled.[/dim]")
+        raise typer.Exit(0)
     except Exception as e:
         console.print(f"[red]Unexpected error:[/red] {type(e).__name__}: {e}")
         console.print("[dim]Check your config with: rp-fetch config show[/dim]")
@@ -630,6 +637,9 @@ def launch_search(
     except RPClientError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
+    except (KeyboardInterrupt, click.exceptions.Abort):
+        console.print("\n[dim]Cancelled.[/dim]")
+        raise typer.Exit(0)
     except Exception as e:
         console.print(f"[red]Unexpected error:[/red] {type(e).__name__}: {e}")
         console.print("[dim]Check your config with: rp-fetch config show[/dim]")
@@ -713,6 +723,9 @@ def download(
         else:
             console.print(f"[red]File system error:[/red] {e}")
         raise typer.Exit(1)
+    except (KeyboardInterrupt, click.exceptions.Abort):
+        console.print("\n[dim]Cancelled.[/dim]")
+        raise typer.Exit(0)
     except Exception as e:
         console.print(
             f"[red]Unexpected error during download:[/red] {type(e).__name__}: {e}"
@@ -803,6 +816,9 @@ def search_and_download_cmd(
     except RPClientError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
+    except (KeyboardInterrupt, click.exceptions.Abort):
+        console.print("\n[dim]Cancelled.[/dim]")
+        raise typer.Exit(0)
     except Exception as e:
         console.print(f"[red]Unexpected error:[/red] {type(e).__name__}: {e}")
         console.print("[dim]Check your config with: rp-fetch config show[/dim]")

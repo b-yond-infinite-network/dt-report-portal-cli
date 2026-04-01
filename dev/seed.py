@@ -31,9 +31,10 @@ import httpx
 BASE_URL = "http://localhost:8080"
 ADMIN_USER = "superadmin"
 ADMIN_PASS = "erebus"
-PROJECT_NAME = "tessa_vonr"
+PROJECT_NAME = "vonr_launch"
 
 # ── Fake binary content generators ──────────────────────────────
+
 
 def make_fake_png(width: int = 100, height: int = 50, label: str = "test") -> bytes:
     """Generate a minimal valid PNG (1x1 red pixel repeated, with label in metadata)."""
@@ -70,14 +71,18 @@ def make_fake_pcap(packet_count: int = 5) -> bytes:
     """Generate a minimal valid PCAP file with fake Ethernet/IP/UDP packets."""
     buf = io.BytesIO()
     # Global header
-    buf.write(struct.pack("<IHHiIII",
-        0xA1B2C3D4,  # magic
-        2, 4,         # version
-        0,            # timezone
-        0,            # sigfigs
-        65535,        # snaplen
-        1,            # link type: Ethernet
-    ))
+    buf.write(
+        struct.pack(
+            "<IHHiIII",
+            0xA1B2C3D4,  # magic
+            2,
+            4,  # version
+            0,  # timezone
+            0,  # sigfigs
+            65535,  # snaplen
+            1,  # link type: Ethernet
+        )
+    )
     base_ts = int(time.time())
     for i in range(packet_count):
         # Minimal Ethernet + IP + UDP packet (42 bytes)
@@ -115,6 +120,7 @@ def make_fake_appium_log() -> bytes:
 
 
 # ── API helpers ──────────────────────────────────────────────────
+
 
 class RPSeeder:
     def __init__(self, base_url: str) -> None:
@@ -168,7 +174,9 @@ class RPSeeder:
             print(f"  Assignment OK")
         else:
             # Some versions return 400 if already assigned — that's fine
-            print(f"  Assignment response: {resp.status_code} (may already be assigned)")
+            print(
+                f"  Assignment response: {resp.status_code} (may already be assigned)"
+            )
 
     def generate_api_key(self) -> str:
         """Generate an API key for superadmin and return it."""
@@ -242,8 +250,13 @@ class RPSeeder:
         resp.raise_for_status()
 
     def start_item(
-        self, name: str, item_type: str, launch_uuid: str, start: datetime,
-        parent_uuid: str | None = None, description: str = "",
+        self,
+        name: str,
+        item_type: str,
+        launch_uuid: str,
+        start: datetime,
+        parent_uuid: str | None = None,
+        description: str = "",
     ) -> str:
         """Start a test item, return its UUID."""
         body = {
@@ -265,8 +278,12 @@ class RPSeeder:
         return resp.json()["id"]
 
     def finish_item(
-        self, uuid: str, launch_uuid: str, end: datetime,
-        status: str = "PASSED", issue: dict | None = None,
+        self,
+        uuid: str,
+        launch_uuid: str,
+        end: datetime,
+        status: str = "PASSED",
+        issue: dict | None = None,
     ) -> None:
         body: dict = {
             "endTime": self._ts(end),
@@ -283,8 +300,12 @@ class RPSeeder:
         resp.raise_for_status()
 
     def create_log(
-        self, item_uuid: str, launch_uuid: str, ts: datetime,
-        message: str, level: str = "info",
+        self,
+        item_uuid: str,
+        launch_uuid: str,
+        ts: datetime,
+        message: str,
+        level: str = "info",
     ) -> None:
         resp = self.client.post(
             f"{self.base_url}/api/v1/{PROJECT_NAME}/log",
@@ -300,19 +321,29 @@ class RPSeeder:
         resp.raise_for_status()
 
     def create_log_with_attachment(
-        self, item_uuid: str, launch_uuid: str, ts: datetime,
-        message: str, level: str,
-        filename: str, content_type: str, file_data: bytes,
+        self,
+        item_uuid: str,
+        launch_uuid: str,
+        ts: datetime,
+        message: str,
+        level: str,
+        filename: str,
+        content_type: str,
+        file_data: bytes,
     ) -> None:
         """Create a log entry with a binary attachment (multipart upload)."""
-        log_json = json.dumps([{
-            "itemUuid": item_uuid,
-            "launchUuid": launch_uuid,
-            "time": self._ts(ts),
-            "message": message,
-            "level": level,
-            "file": {"name": filename},
-        }])
+        log_json = json.dumps(
+            [
+                {
+                    "itemUuid": item_uuid,
+                    "launchUuid": launch_uuid,
+                    "time": self._ts(ts),
+                    "message": message,
+                    "level": level,
+                    "file": {"name": filename},
+                }
+            ]
+        )
         resp = self.client.post(
             f"{self.base_url}/api/v1/{PROJECT_NAME}/log",
             files={
@@ -345,7 +376,13 @@ SUITES = [
                     ("info", "200 OK received — registration successful"),
                     ("info", "Registration binding: 3600s"),
                 ],
-                "attachments": [("capture_registration.pcap", "application/vnd.tcpdump.pcap", "pcap")],
+                "attachments": [
+                    (
+                        "capture_registration.pcap",
+                        "application/vnd.tcpdump.pcap",
+                        "pcap",
+                    )
+                ],
             },
             {
                 "name": "TC002_ReRegistration",
@@ -427,7 +464,9 @@ SUITES = [
                     ("info", "Handover to LTE completed — call preserved"),
                     ("info", "Audio gap: 180ms (within 300ms target)"),
                 ],
-                "attachments": [("srvcc_handover.pcap", "application/vnd.tcpdump.pcap", "pcap")],
+                "attachments": [
+                    ("srvcc_handover.pcap", "application/vnd.tcpdump.pcap", "pcap")
+                ],
             },
             {
                 "name": "TC021_EPSFallback_CallSetup",
@@ -435,7 +474,10 @@ SUITES = [
                 "status": "PASSED",
                 "logs": [
                     ("info", "MO call initiated on NR"),
-                    ("warn", "NR coverage insufficient for VoNR — EPS Fallback triggered"),
+                    (
+                        "warn",
+                        "NR coverage insufficient for VoNR — EPS Fallback triggered",
+                    ),
                     ("info", "UE redirected to LTE"),
                     ("info", "VoLTE call established successfully"),
                     ("info", "Call setup time: 4.2s"),
@@ -454,7 +496,10 @@ FAILED_TESTS = {
             ("error", "Registration FAILED — 403 Forbidden from S-CSCF"),
             ("error", "Possible cause: USIM profile mismatch on HSS"),
         ],
-        "issue": {"issueType": "pb001", "comment": "HSS configuration error in staging"},
+        "issue": {
+            "issueType": "pb001",
+            "comment": "HSS configuration error in staging",
+        },
         "attachments": [
             ("screenshot_registration_fail.png", "image/png", "png"),
             ("appium_session.log", "text/plain", "appium"),
@@ -512,27 +557,49 @@ BDD_STRUCTURE = {
                                     "name": "VoLTE_VoLTE",
                                     "description": "Basic VoLTE to VoLTE voice call",
                                     "status": "FAILED",
-                                    "issue": {"issueType": "ab001", "comment": "Alerting State Not Reached"},
+                                    "issue": {
+                                        "issueType": "ab001",
+                                        "comment": "Alerting State Not Reached",
+                                    },
                                     "logs": [
-                                        ("info", "-- And the following parties: --\n"
-                                                 "| name    | type  | RAT | VoLTE | 4G | 2G | NLAN |\n"
-                                                 "| A-party | Probe | 4G  | on    | on | on | on   |\n"
-                                                 "| B-party | Probe | 4G  | on    | on | on | on   |"),
-                                        ("info", "JobID: 10f9aeaea98a726f\n"
-                                                 "https://grafana01.its-telekom.eu/d/_p3ZawU2k/appium-environment-logs"
-                                                 "?orgId=1&var-env_id=10f9aeaea98a726f\n"
-                                                 "GridURL: selenium.its:4446"),
+                                        (
+                                            "info",
+                                            "-- And the following parties: --\n"
+                                            "| name    | type  | RAT | VoLTE | 4G | 2G | NLAN |\n"
+                                            "| A-party | Probe | 4G  | on    | on | on | on   |\n"
+                                            "| B-party | Probe | 4G  | on    | on | on | on   |",
+                                        ),
+                                        (
+                                            "info",
+                                            "JobID: 10f9aeaea98a726f\n"
+                                            "https://grafana01.its-telekom.eu/d/_p3ZawU2k/appium-environment-logs"
+                                            "?orgId=1&var-env_id=10f9aeaea98a726f\n"
+                                            "GridURL: selenium.its:4446",
+                                        ),
                                         ("info", "A-party is initialized as Probe9"),
                                         ("info", "B-party is initialized as Probe12"),
-                                        ("debug", "Dialing B-party number: +491511234567"),
+                                        (
+                                            "debug",
+                                            "Dialing B-party number: +491511234567",
+                                        ),
                                         ("info", "A-party call state: DIALING"),
                                         ("info", "B-party incoming call detected"),
                                         ("info", "B-party answering call"),
-                                        ("error", "Alerting state NOT reached within 30s timeout"),
-                                        ("error", "Expected: ALERTING, Got: DIALING after 30000ms"),
+                                        (
+                                            "error",
+                                            "Alerting state NOT reached within 30s timeout",
+                                        ),
+                                        (
+                                            "error",
+                                            "Expected: ALERTING, Got: DIALING after 30000ms",
+                                        ),
                                     ],
                                     "attachments": [
-                                        ("screenshot_call_fail.png", "image/png", "png"),
+                                        (
+                                            "screenshot_call_fail.png",
+                                            "image/png",
+                                            "png",
+                                        ),
                                         ("appium_a_party.log", "text/plain", "appium"),
                                     ],
                                 },
@@ -541,21 +608,31 @@ BDD_STRUCTURE = {
                                     "description": "VoLTE call with hold and resume",
                                     "status": "PASSED",
                                     "logs": [
-                                        ("info", "-- And the following parties: --\n"
-                                                 "| name    | type  | RAT | VoLTE | 4G |\n"
-                                                 "| A-party | Probe | 4G  | on    | on |\n"
-                                                 "| B-party | Probe | 4G  | on    | on |"),
+                                        (
+                                            "info",
+                                            "-- And the following parties: --\n"
+                                            "| name    | type  | RAT | VoLTE | 4G |\n"
+                                            "| A-party | Probe | 4G  | on    | on |\n"
+                                            "| B-party | Probe | 4G  | on    | on |",
+                                        ),
                                         ("info", "A-party is initialized as Probe3"),
                                         ("info", "B-party is initialized as Probe7"),
                                         ("info", "Call established between A and B"),
                                         ("info", "A-party puts call on hold"),
-                                        ("info", "Hold confirmed — media stream paused"),
+                                        (
+                                            "info",
+                                            "Hold confirmed — media stream paused",
+                                        ),
                                         ("info", "A-party resumes call"),
                                         ("info", "Call resumed — media stream active"),
                                         ("info", "Call terminated normally"),
                                     ],
                                     "attachments": [
-                                        ("call_hold_resume.pcap", "application/vnd.tcpdump.pcap", "pcap"),
+                                        (
+                                            "call_hold_resume.pcap",
+                                            "application/vnd.tcpdump.pcap",
+                                            "pcap",
+                                        ),
                                     ],
                                 },
                             ],
@@ -569,8 +646,14 @@ BDD_STRUCTURE = {
                                     "description": "VoLTE origination to PSTN termination",
                                     "status": "PASSED",
                                     "logs": [
-                                        ("info", "A-party (VoLTE) calling B-party (PSTN)"),
-                                        ("info", "MGCF interworking — SIP to ISUP conversion"),
+                                        (
+                                            "info",
+                                            "A-party (VoLTE) calling B-party (PSTN)",
+                                        ),
+                                        (
+                                            "info",
+                                            "MGCF interworking — SIP to ISUP conversion",
+                                        ),
                                         ("info", "Call established via PSTN gateway"),
                                         ("info", "Audio quality: MOS 4.1"),
                                         ("info", "Call terminated by A-party"),
@@ -595,15 +678,32 @@ BDD_STRUCTURE = {
                                     "status": "PASSED",
                                     "logs": [
                                         ("info", "UE dialing 112"),
-                                        ("info", "Emergency bearer established — QCI 1"),
-                                        ("info", "Location info attached: Cell ID 0x1A2B"),
+                                        (
+                                            "info",
+                                            "Emergency bearer established — QCI 1",
+                                        ),
+                                        (
+                                            "info",
+                                            "Location info attached: Cell ID 0x1A2B",
+                                        ),
                                         ("info", "Call routed to PSAP"),
-                                        ("info", "Call established with emergency center"),
+                                        (
+                                            "info",
+                                            "Call established with emergency center",
+                                        ),
                                         ("info", "Call duration: 45s"),
                                     ],
                                     "attachments": [
-                                        ("emergency_setup.pcap", "application/vnd.tcpdump.pcap", "pcap"),
-                                        ("screenshot_emergency.png", "image/png", "png"),
+                                        (
+                                            "emergency_setup.pcap",
+                                            "application/vnd.tcpdump.pcap",
+                                            "pcap",
+                                        ),
+                                        (
+                                            "screenshot_emergency.png",
+                                            "image/png",
+                                            "png",
+                                        ),
                                     ],
                                 },
                             ],
@@ -630,7 +730,10 @@ BDD_STRUCTURE = {
                                     "status": "PASSED",
                                     "logs": [
                                         ("info", "A-party sending SMS to B-party"),
-                                        ("debug", "SIP MESSAGE sip:+491517654321@ims.operator.com"),
+                                        (
+                                            "debug",
+                                            "SIP MESSAGE sip:+491517654321@ims.operator.com",
+                                        ),
                                         ("info", "202 Accepted from SC"),
                                         ("info", "Delivery report received: DELIVERED"),
                                     ],
@@ -640,17 +743,33 @@ BDD_STRUCTURE = {
                                     "name": "MO_SMS_long",
                                     "description": "Send a concatenated (long) SMS over IMS",
                                     "status": "FAILED",
-                                    "issue": {"issueType": "pb001", "comment": "Concatenation header missing"},
+                                    "issue": {
+                                        "issueType": "pb001",
+                                        "comment": "Concatenation header missing",
+                                    },
                                     "logs": [
-                                        ("info", "Sending 300-char SMS (requires concatenation)"),
+                                        (
+                                            "info",
+                                            "Sending 300-char SMS (requires concatenation)",
+                                        ),
                                         ("debug", "UDH: concat ref=42, total=2, seq=1"),
                                         ("info", "Part 1/2 sent successfully"),
                                         ("debug", "UDH: concat ref=42, total=2, seq=2"),
-                                        ("error", "Part 2/2 FAILED — 500 Server Error from SC"),
-                                        ("error", "Delivery report: FAILED — partial delivery"),
+                                        (
+                                            "error",
+                                            "Part 2/2 FAILED — 500 Server Error from SC",
+                                        ),
+                                        (
+                                            "error",
+                                            "Delivery report: FAILED — partial delivery",
+                                        ),
                                     ],
                                     "attachments": [
-                                        ("sms_failure.pcap", "application/vnd.tcpdump.pcap", "pcap"),
+                                        (
+                                            "sms_failure.pcap",
+                                            "application/vnd.tcpdump.pcap",
+                                            "pcap",
+                                        ),
                                     ],
                                 },
                             ],
@@ -668,14 +787,19 @@ def seed_bdd_launch(seeder: RPSeeder, base_time: datetime) -> str:
     t = base_time
     cfg = BDD_STRUCTURE
     launch_uuid = seeder.start_launch(
-        cfg["launch_name"], t, description=cfg["description"],
+        cfg["launch_name"],
+        t,
+        description=cfg["description"],
     )
     overall_status = "PASSED"
 
     for folder in cfg["folders"]:
         t += timedelta(seconds=2)
         folder_uuid = seeder.start_item(
-            folder["name"], "suite", launch_uuid, t,
+            folder["name"],
+            "suite",
+            launch_uuid,
+            t,
             description=folder["description"],
         )
         folder_status = "PASSED"
@@ -683,7 +807,10 @@ def seed_bdd_launch(seeder: RPSeeder, base_time: datetime) -> str:
         for subfolder in folder.get("subfolders", []):
             t += timedelta(seconds=1)
             sub_uuid = seeder.start_item(
-                subfolder["name"], "suite", launch_uuid, t,
+                subfolder["name"],
+                "suite",
+                launch_uuid,
+                t,
                 parent_uuid=folder_uuid,
                 description=subfolder["description"],
             )
@@ -692,7 +819,10 @@ def seed_bdd_launch(seeder: RPSeeder, base_time: datetime) -> str:
             for feature in subfolder.get("features", []):
                 t += timedelta(seconds=1)
                 feat_uuid = seeder.start_item(
-                    feature["name"], "test", launch_uuid, t,
+                    feature["name"],
+                    "test",
+                    launch_uuid,
+                    t,
                     parent_uuid=sub_uuid,
                     description=feature["description"],
                 )
@@ -701,7 +831,10 @@ def seed_bdd_launch(seeder: RPSeeder, base_time: datetime) -> str:
                 for scenario in feature.get("scenarios", []):
                     t += timedelta(seconds=1)
                     scen_uuid = seeder.start_item(
-                        scenario["name"], "step", launch_uuid, t,
+                        scenario["name"],
+                        "step",
+                        launch_uuid,
+                        t,
                         parent_uuid=feat_uuid,
                         description=scenario["description"],
                     )
@@ -712,18 +845,27 @@ def seed_bdd_launch(seeder: RPSeeder, base_time: datetime) -> str:
                         t += timedelta(milliseconds=500)
                         seeder.create_log(scen_uuid, launch_uuid, t, msg, level)
 
-                    for filename, content_type, att_type in scenario.get("attachments", []):
+                    for filename, content_type, att_type in scenario.get(
+                        "attachments", []
+                    ):
                         t += timedelta(milliseconds=100)
                         data = generate_attachment_data(att_type)
                         seeder.create_log_with_attachment(
-                            scen_uuid, launch_uuid, t,
-                            f"Attachment: {filename}", "info",
-                            filename, content_type, data,
+                            scen_uuid,
+                            launch_uuid,
+                            t,
+                            f"Attachment: {filename}",
+                            "info",
+                            filename,
+                            content_type,
+                            data,
                         )
                         print(f"        📎 {filename} ({len(data)} bytes)")
 
                     t += timedelta(seconds=1)
-                    seeder.finish_item(scen_uuid, launch_uuid, t, status=status, issue=issue)
+                    seeder.finish_item(
+                        scen_uuid, launch_uuid, t, status=status, issue=issue
+                    )
                     if status == "FAILED":
                         feat_status = "FAILED"
                     symbol = "✅" if status == "PASSED" else "❌"
@@ -769,14 +911,18 @@ def seed_launch(
     """Seed a complete launch with suites, tests, logs, and attachments."""
     t = base_time
     launch_uuid = seeder.start_launch(
-        launch_name, t,
+        launch_name,
+        t,
         description=f"{'Failed' if apply_failures else 'Passed'} run of VoNR regression suite",
     )
 
     for suite_def in SUITES:
         t += timedelta(seconds=2)
         suite_uuid = seeder.start_item(
-            suite_def["name"], "suite", launch_uuid, t,
+            suite_def["name"],
+            "suite",
+            launch_uuid,
+            t,
             description=suite_def["description"],
         )
         suite_status = "PASSED"
@@ -784,7 +930,10 @@ def seed_launch(
         for test_def in suite_def["tests"]:
             t += timedelta(seconds=1)
             test_uuid = seeder.start_item(
-                test_def["name"], "test", launch_uuid, t,
+                test_def["name"],
+                "test",
+                launch_uuid,
+                t,
                 parent_uuid=suite_uuid,
                 description=test_def["description"],
             )
@@ -811,9 +960,14 @@ def seed_launch(
                 t += timedelta(milliseconds=100)
                 data = generate_attachment_data(att_type)
                 seeder.create_log_with_attachment(
-                    test_uuid, launch_uuid, t,
-                    f"Attachment: {filename}", "info",
-                    filename, content_type, data,
+                    test_uuid,
+                    launch_uuid,
+                    t,
+                    f"Attachment: {filename}",
+                    "info",
+                    filename,
+                    content_type,
+                    data,
                 )
                 print(f"      📎 {filename} ({len(data)} bytes)")
 
@@ -822,7 +976,9 @@ def seed_launch(
 
             if status == "FAILED":
                 suite_status = "FAILED"
-            print(f"      {'✅' if status == 'PASSED' else '❌'} {test_def['name']} — {status}")
+            print(
+                f"      {'✅' if status == 'PASSED' else '❌'} {test_def['name']} — {status}"
+            )
 
         t += timedelta(seconds=1)
         seeder.finish_item(suite_uuid, launch_uuid, t, status=suite_status)
@@ -836,10 +992,15 @@ def seed_launch(
 
 # ── Main ─────────────────────────────────────────────────────────
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Seed ReportPortal with test data")
-    parser.add_argument("--base-url", default=BASE_URL, help=f"RP base URL (default: {BASE_URL})")
-    parser.add_argument("--wait", type=int, default=0, help="Seconds to wait for RP to be ready")
+    parser.add_argument(
+        "--base-url", default=BASE_URL, help=f"RP base URL (default: {BASE_URL})"
+    )
+    parser.add_argument(
+        "--wait", type=int, default=0, help="Seconds to wait for RP to be ready"
+    )
     args = parser.parse_args()
 
     seeder = RPSeeder(args.base_url)
@@ -902,7 +1063,9 @@ def main() -> None:
     print(f"API Key: {api_key}")
     print(f"\n📋 Quick start with rp-fetch:")
     print(f"   uv run rp-fetch config init")
-    print(f"   # Use: base_url={args.base_url}  project={PROJECT_NAME}  api_key=<above>")
+    print(
+        f"   # Use: base_url={args.base_url}  project={PROJECT_NAME}  api_key=<above>"
+    )
     print(f"   uv run rp-fetch launch list")
     print(f"   uv run rp-fetch download {uuid3}              # BDD launch")
     print(f"   uv run rp-fetch download {uuid3} --flat       # BDD launch (flat mode)")

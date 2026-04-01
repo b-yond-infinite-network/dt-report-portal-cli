@@ -196,3 +196,25 @@ async def test_proxy_407_raises_proxy_auth_error():
     async with client:
         with pytest.raises(RPProxyAuthError, match="407"):
             await client.list_launches()
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_network_error_raises_client_error(client):
+    respx.get(f"{BASE_URL}/api/v1/{PROJECT}/launch").mock(
+        side_effect=httpx.ConnectError("DNS resolution failed")
+    )
+    async with client:
+        with pytest.raises(RPClientError, match="Network error"):
+            await client.list_launches()
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_http_500_raises_client_error(client):
+    respx.get(f"{BASE_URL}/api/v1/{PROJECT}/launch").mock(
+        return_value=httpx.Response(500)
+    )
+    async with client:
+        with pytest.raises(RPClientError, match="500"):
+            await client.list_launches()

@@ -32,7 +32,7 @@ uv run python seed.py --wait 120
 
 The `seed.py` script creates:
 
-**Project:** `tessa_vonr`
+**Project:** `vonr_launch`
 
 **Launch 1 — `VoNR_Regression_v2.0` (PASSED)**
 - 3 suites, 7 test cases — all passing
