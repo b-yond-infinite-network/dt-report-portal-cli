@@ -458,6 +458,12 @@ def config_test() -> None:
     except RPClientError as e:
         console.print(f"[red]Connection failed:[/red] {e}")
         raise typer.Exit(1)
+    except Exception as e:
+        console.print(
+            f"[red]Unexpected error during connection test:[/red] {type(e).__name__}: {e}"
+        )
+        console.print("[dim]Check your config with: rp-fetch config show[/dim]")
+        raise typer.Exit(1)
 
 
 @config_app.command("set")
@@ -575,6 +581,10 @@ def launch_list(
     except RPClientError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]Unexpected error:[/red] {type(e).__name__}: {e}")
+        console.print("[dim]Check your config with: rp-fetch config show[/dim]")
+        raise typer.Exit(1)
 
 
 @launch_app.command("search")
@@ -619,6 +629,10 @@ def launch_search(
         raise typer.Exit(1)
     except RPClientError as e:
         console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]Unexpected error:[/red] {type(e).__name__}: {e}")
+        console.print("[dim]Check your config with: rp-fetch config show[/dim]")
         raise typer.Exit(1)
 
 
@@ -698,6 +712,12 @@ def download(
             )
         else:
             console.print(f"[red]File system error:[/red] {e}")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(
+            f"[red]Unexpected error during download:[/red] {type(e).__name__}: {e}"
+        )
+        console.print("[dim]Check your config with: rp-fetch config show[/dim]")
         raise typer.Exit(1)
 
 
@@ -782,6 +802,10 @@ def search_and_download_cmd(
         raise typer.Exit(1)
     except RPClientError as e:
         console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]Unexpected error:[/red] {type(e).__name__}: {e}")
+        console.print("[dim]Check your config with: rp-fetch config show[/dim]")
         raise typer.Exit(1)
 
 

@@ -115,6 +115,12 @@ class RPClient:
                 raise RPClientError(
                     f"Request timed out after {MAX_RETRIES_TIMEOUT} retries: {path}"
                 ) from exc
+            except httpx.HTTPError as exc:
+                # Catch-all for network errors (ConnectError, DNS failures,
+                # TLS errors, etc.) that are not timeouts or proxy errors.
+                raise RPClientError(
+                    f"Network error while requesting {path}: {exc}"
+                ) from exc
 
             if resp.status_code == 407:
                 raise RPProxyAuthError(
@@ -140,7 +146,12 @@ class RPClient:
                     continue
                 raise RPClientError("Rate limited (429) after max retries")
 
-            resp.raise_for_status()
+            try:
+                resp.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                raise RPClientError(
+                    f"HTTP {resp.status_code} error for {path}: {exc}"
+                ) from exc
             return resp
 
         raise last_exc or RPClientError("Request failed")
