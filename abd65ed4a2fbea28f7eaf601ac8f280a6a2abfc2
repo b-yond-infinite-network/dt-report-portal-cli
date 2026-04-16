@@ -1,0 +1,14 @@
+.github/workflows/git-ai.yaml
+  h_c07d0759df84d0 1-29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0",
+  "base_commit_sha": "abd65ed4a2fbea28f7eaf601ac8f280a6a2abfc2",
+  "prompts": {},
+  "humans": {
+    "h_c07d0759df84d0": {
+      "author": "Lucas Ledesma"
+    }
+  }
+}
