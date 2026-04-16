@@ -1,0 +1,29 @@
+name: Git AI
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  git-ai:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Install git-ai
+        run: |
+          set -euo pipefail
+          curl -fsSLo /tmp/git-ai-install.sh https://usegitai.com/install.sh
+          echo "daf4e97a85f2f72f5141aff5c2b16068369f05a7c69bc5f32bd2e257b991b1a2  /tmp/git-ai-install.sh" | sha256sum -c -
+          bash /tmp/git-ai-install.sh
+          echo "$HOME/.git-ai/bin" >> $GITHUB_PATH
+      - name: Run git-ai
+        id: run-git-ai
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git-ai ci github run
