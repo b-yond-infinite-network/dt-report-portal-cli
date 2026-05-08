@@ -10,15 +10,25 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
+      attestations: read
 
     steps:
       - name: Install git-ai
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          curl -fsSLo /tmp/git-ai-install.sh https://usegitai.com/install.sh
-          echo "daf4e97a85f2f72f5141aff5c2b16068369f05a7c69bc5f32bd2e257b991b1a2  /tmp/git-ai-install.sh" | sha256sum -c -
-          bash /tmp/git-ai-install.sh
+          curl -fsSLo /tmp/install.sh https://github.com/git-ai-project/git-ai/releases/latest/download/install.sh
+          curl -fsSLo /tmp/SHA256SUMS https://github.com/git-ai-project/git-ai/releases/latest/download/SHA256SUMS
+          cd /tmp && grep 'install.sh' SHA256SUMS | sha256sum -c -
+          bash /tmp/install.sh
           echo "$HOME/.git-ai/bin" >> $GITHUB_PATH
+      - name: Verify git-ai attestation
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh attestation verify "$HOME/.git-ai/bin/git-ai" --repo git-ai-project/git-ai
       - name: Run git-ai
         id: run-git-ai
         env:
@@ -27,3 +37,4 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git-ai ci github run
+
