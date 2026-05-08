@@ -15,8 +15,6 @@ jobs:
 
     steps:
       - name: Install git-ai
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           curl -fsSLo /tmp/install.sh https://github.com/git-ai-project/git-ai/releases/latest/download/install.sh
@@ -37,4 +35,3 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git-ai ci github run
-
